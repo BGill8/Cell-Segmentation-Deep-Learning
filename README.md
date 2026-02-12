@@ -1,6 +1,14 @@
 # Cell-Segmentation-Deep-Learning
 Semantic Nuclei Cell Segmentation Project for AI535 Final Project
 
+## Description
+
+Cell segmentation is a critical process for defining boundaries in microscopic images, enabling quantitative analysis of cell counts, shapes, and molecular content. By accurately identifying individual cells, this technology supports drug discovery, disease research, and spatial tissue analysis, ultimately helping to improve cancer diagnosis and treatment strategies.
+
+## Tentative Project Architecture
+
+We will be utilizing a U-Net architecture. U-Net is a fully convolutional network that has encoder-decoder sequences.
+
 ## Project Structure
 
 ```text
