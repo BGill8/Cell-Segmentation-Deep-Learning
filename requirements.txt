@@ -1,0 +1,22 @@
+# PyTorch Deep Learning
+torch
+torchvision
+
+# Data Manipulation & Math
+numpy
+pandas
+
+# Image Processing & Augmentation
+Pillow
+albumentations
+opencv-python-headless
+
+# Plotting & Visualization
+matplotlib
+
+# Logging & Progress
+wandb
+tqdm
+
+# Web Application (Optional for the end)
+streamlit
