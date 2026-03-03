@@ -14,11 +14,13 @@ We will be utilizing a U-Net architecture. U-Net is a fully convolutional networ
 ```text
 Cell-Segmentation-Deep-Learning/
 ├── data-science-bowl-2018/
-│   ├── stage1_train/
 │   ├── stage1_test/
+│   ├── stage1_train/
 │   ├── stage2_test_final/
-│   ├── stage1_train_labels.csv
+│   ├── stage1_sample_submission.csv
 │   ├── stage1_solution.csv
+│   ├── stage1_train_labels.csv
+│   ├── stage2_sample_submission_final.csv
 │   └── ...
 ├── .gitignore
 └── README.md
