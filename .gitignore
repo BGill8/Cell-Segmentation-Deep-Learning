@@ -1,2 +1,5 @@
 data-science-bowl-2018/
 data-science-bowl/
+
+# macOS system files
+.DS_Store
