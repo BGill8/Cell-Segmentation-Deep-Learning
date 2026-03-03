@@ -61,7 +61,7 @@ ssh your_onid@submit.hpc.engr.oregonstate.edu
 Clone the repository into your home directory or scratch space:
 
 ```bash
-git clone https://github.com/yourusername/Cell-Segmentation-Deep-Learning.git
+git clone https://github.com/BGill8/Cell-Segmentation-Deep-Learning.git
 cd Cell-Segmentation-Deep-Learning
 ```
 
