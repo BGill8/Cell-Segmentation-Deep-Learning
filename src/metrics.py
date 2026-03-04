@@ -1,5 +1,6 @@
 """
-Evaluation metrics for model performance.
-Primarily contains the Intersection over Union (IoU) calculation 
-to measure pixel-perfect overlap between predictions and ground truth.
+Evaluation metrics for instance segmentation performance.
+Calculates Mean Average Precision (mAP) across various Intersection over Union (IoU) 
+thresholds, rather than standard semantic IoU, to accurately score both 
+the detection (counting) and the exact boundary pixel accuracy of individual cells.
 """
