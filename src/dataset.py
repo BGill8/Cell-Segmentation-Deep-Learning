@@ -1,11 +1,11 @@
 """
 PyTorch Dataset class for the Data Science Bowl 2018 instance segmentation dataset.
-Instead of a single merged binary mask, this loader processes individual nucleus 
-masks to generate distance transforms (distance maps) and boundary masks. 
+Instead of a single merged binary mask, this loader processes individual nucleus
+masks to generate distance transforms (distance maps) and boundary masks.
 These targets force the model to learn the spatial separation between touching cells.
 """
 
-import torch 
+import torch
 import torchvision
 import torchvision.transforms as transforms #basic aug tools
 import os
@@ -31,19 +31,46 @@ from albumentations.pytorch import ToTensorV2 #convert np array to PyTorch tenso
   #masks: (N, H, W)
 
 #creates trasnsform pipeline
-#each time called, randomly decides 
+#each time called, randomly decides
 transform = A.Compose([
-    A.HorizontalFlip(p=0.5),  
+    # ----- Geometric / spatial (applies to image + masks) -----
+
+    #50% chance
+    A.HorizontalFlip(p=0.5),
     A.VerticalFlip(p=0.5),
     A.RandomRotate90(p=0.5),
 
-    #if add intensity augmentation do not change masks
-    
+    #40% chance of rotating
+    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.10, rotate_limit=15, p=0.4),
+
+    #15% chance block triggers, and picks one of these
+    A.OneOf([
+        A.ElasticTransform(alpha=60, sigma=8, alpha_affine=8),
+        A.Perspective(scale=(0.02, 0.05)),
+        A.PiecewiseAffine(scale=(0.01, 0.03)),
+        A.OpticalDistortion(distort_limit=0.05, shift_limit=0.05),
+    ], p=0.15),
+
+    # ----- Intensity / appearance (image only) -----
+
+    #25% chance block triggers, and picks one of these
+    A.OneOf([
+        A.GaussNoise(var_limit=(10.0, 50.0)),
+        A.MotionBlur(blur_limit=5),
+        A.MedianBlur(blur_limit=5),
+        A.Sharpen(alpha=(0.1, 0.3), lightness=(0.7, 1.0)),
+        A.Emboss(alpha=(0.1, 0.3), strength=(0.2, 0.5)),
+    ], p=0.25),  
+
+    #20% chance of shuffling
+    A.ChannelShuffle(p=0.2),
+    #10% chance of grayscaling
+    A.ToGray(p=0.1),
 ])
 
 #create custom dataset
 class NucleiDataset(torch.utils.data.Dataset):
-  
+
   #runs once you create dataset
   def __init__(self, root_dir, transform=None):
     self.root_dir = root_dir  #stores dataset path
@@ -62,7 +89,7 @@ class NucleiDataset(torch.utils.data.Dataset):
 
     #Load image
     img_path = os.path.join(self.root_dir, image_id, "images", image_id + ".png") #builds image path (ex: stage1_train/abc123/images/abc123.png)
-    image = cv2.imread(img_path)  #loads image  
+    image = cv2.imread(img_path)  #loads image
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  #converts it to RGB
 
     #Load all masks
@@ -70,24 +97,26 @@ class NucleiDataset(torch.utils.data.Dataset):
     mask_files = os.listdir(mask_dir)
 
     masks = []
-    for m in mask_files:  #loop through each mask 
-      mask_path = os.path.join(mask_dir, m) 
+    for m in mask_files:  #loop through each mask
+      mask_path = os.path.join(mask_dir, m)
       mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)  #loads mask as a single channel image
       mask = (mask > 0).astype(np.uint8)  #convert to binary
       masks.append(mask)  #adds the mask to masks list
 
     #USED TO STACK THE MASKS
-    masks = np.stack(masks, axis=0)  # (N, H, W) 
+    masks = np.stack(masks, axis=0)  # (N, H, W)
 
 
     #Apply augmentation to image and its masks
     if self.transform:
-      augmented = self.transform(image=image, masks=list(masks))   #uses transform function to randomly augment images AND along with its masks
+       #uses transform function to randomly augment images AND along with its masks
+       #auto knows that images + mask for spatial changes and only images for intensity
+      augmented = self.transform(image=image, masks=list(masks))  
       image = augmented["image"]
       masks = np.stack(augmented["masks"], axis=0)
 
     # Convert to tensors
-    image = torch.tensor(image).permute(2, 0, 1).float()   #permute so shape is (C, H, W) 
+    image = torch.tensor(image).permute(2, 0, 1).float()   #permute so shape is (C, H, W)
     masks = torch.tensor(masks).float() #convert the masks to tensors (N, H, W)
 
     return image, masks
