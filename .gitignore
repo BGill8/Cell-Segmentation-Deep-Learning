@@ -3,3 +3,24 @@ data-science-bowl/
 
 # macOS system files
 .DS_Store
+
+# Environments
+.env
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Project Data and Checkpoints
+data/
+checkpoints/
+
+# Weights & Biases local logs
+wandb/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS generated files
+.DS_Store
+Thumbs.db
