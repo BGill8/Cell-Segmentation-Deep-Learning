@@ -19,17 +19,36 @@ Cell segmentation is a critical process for defining boundaries in microscopic i
 
 ```text
 Cell-Segmentation-Deep-Learning/
-├── data-science-bowl-2018/
-│   ├── stage1_test/
-│   ├── stage1_train/
-│   ├── stage2_test_final/
-│   ├── stage1_sample_submission.csv
-│   ├── stage1_solution.csv
-│   ├── stage1_train_labels.csv
-│   ├── stage2_sample_submission_final.csv
-│   └── ...
+├── app/
+│   └── app.py
+├── checkpoints/
+│   └── unet_best_model.pth
+├── data/
+│   ├── augmented/
+│   └── data-science-bowl-2018/
+│       ├── stage1_test/
+│       ├── stage1_train/
+│       ├── stage2_test_final/
+│       ├── stage1_sample_submission.csv
+│       ├── stage1_solution.csv
+│       ├── stage1_train_labels.csv
+│       └── stage2_sample_submission_final.csv
+├── notebooks/
+│   └── 01_data_exploration.ipynb
+├── outputs/
+├── src/
+│   ├── __init__.py
+│   ├── dataset.py
+│   ├── evaluate.py
+│   ├── loss.py
+│   ├── metrics.py
+│   ├── model.py
+│   ├── train.py
+│   └── utils.py
 ├── .gitignore
-└── README.md
+├── README.md
+├── requirements.txt
+└── train.slurm
 ```
 
 ## Install Dependencies
