@@ -88,12 +88,12 @@ class NucleiDataset(torch.utils.data.Dataset):
     image_id = self.ids[idx]  #gets folder name for sample
 
     #Load image
-    img_path = os.path.join(self.root_dir, image_id, "images", image_id + ".png") #builds image path (ex: stage1_train/abc123/images/abc123.png)
+    img_path = os.path.join(self.root_dir, image_id, "images", image_id + ".png") #builds image path (ex: data/data-science-bowl-2018/stage1_train/abc123/images/abc123.png)
     image = cv2.imread(img_path)  #loads image
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  #converts it to RGB
 
     #Load all masks
-    mask_dir = os.path.join(self.root_dir, image_id, "masks") #finds all individual nucleus mask PNGs
+    mask_dir = os.path.join(self.root_dir, image_id, "masks") #finds all individual nucleus mask PNGs (data/data-science-bowl-2018/stage1_train/abc123/masks/)
     mask_files = os.listdir(mask_dir)
 
     masks = []
