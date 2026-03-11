@@ -7,9 +7,9 @@ continuous deep learning outputs into discrete, uniquely labeled cell instances.
 # Check if an NVIDIA GPU is available, otherwise fallback to CPU
 import torch
 import numpy as np
-import cv2
+import skimage
+from skimage import measure
 from skimage.segmentation import watershed
-from skimage.feature import peak_local_max
 from skimage.measure import label
 from scipy import ndimage as maxi
 
