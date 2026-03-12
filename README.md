@@ -1,5 +1,5 @@
 # Cell-Segmentation-Deep-Learning
-Semantic Nuclei Cell Segmentation Project for AI535 Final Project
+Nuclei Cell Instance Segmentation Project for AI535 Final Project
 
 
 **Team Members:** 
