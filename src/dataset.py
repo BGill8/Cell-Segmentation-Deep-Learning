@@ -34,6 +34,7 @@ from albumentations.pytorch import ToTensorV2 #convert np array to PyTorch tenso
 #each time called, randomly decides
 transform = A.Compose([
     # ----- Geometric / spatial (applies to image + masks) -----
+    A.Resize(256, 256),
 
     #50% chance
     A.HorizontalFlip(p=0.5),
@@ -41,21 +42,26 @@ transform = A.Compose([
     A.RandomRotate90(p=0.5),
 
     #40% chance of rotating
-    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.10, rotate_limit=15, p=0.4),
+    A.Affine(
+        translate_percent={"x": (-0.05, 0.05), "y": (-0.05, 0.05)},
+        scale=(0.90, 1.10),
+        rotate=(-15, 15),
+        p=0.4,
+    ),
 
     #15% chance block triggers, and picks one of these
     A.OneOf([
-        A.ElasticTransform(alpha=60, sigma=8, alpha_affine=8),
+        A.ElasticTransform(alpha=60, sigma=8),
         A.Perspective(scale=(0.02, 0.05)),
         A.PiecewiseAffine(scale=(0.01, 0.03)),
-        A.OpticalDistortion(distort_limit=0.05, shift_limit=0.05),
+        A.OpticalDistortion(distort_limit=0.05),
     ], p=0.15),
 
     # ----- Intensity / appearance (image only) -----
 
     #25% chance block triggers, and picks one of these
     A.OneOf([
-        A.GaussNoise(var_limit=(10.0, 50.0)),
+        A.GaussNoise(std_range=(0.04, 0.10)),
         A.MotionBlur(blur_limit=5),
         A.MedianBlur(blur_limit=5),
         A.Sharpen(alpha=(0.1, 0.3), lightness=(0.7, 1.0)),
