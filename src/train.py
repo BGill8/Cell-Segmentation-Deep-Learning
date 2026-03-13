@@ -92,6 +92,7 @@ def main():
         pred_semantic = torch.sigmoid(output[0, 0]).cpu().numpy()
         pred_dist = output[0, 1].cpu().numpy()
 
+    #POST PROCESSING 
     pred_instances = run_inference(model, sample_image)
     true_mask = sample_target[0].cpu().numpy()
 
