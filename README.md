@@ -112,7 +112,7 @@ pip install -r requirements.txt
 
 ```bash
 # Move data to scratch space
-cp -r data/data-science-bowl-2018 /scratch/your_onid/data-science-bowl-2018
+cp -r data/data-science-bowl-2018 /nfs/hpc-share/your_onid/data-science-bowl-2018
 ```
 
 > **Note:** Ensure you update your dataset paths in `src/dataset.py` or pass the new scratch path as an argument when running your training script.
@@ -140,7 +140,7 @@ Create a file named `train.slurm` in the project root:
 ```bash
 #!/bin/bash
 #SBATCH --job-name=nuclei_instance_seg
-#SBATCH --partition=gpu            # Specify the GPU partition
+#SBATCH --partition=dgx2           # Specify the GPU partition (e.g., dgx2 or gpu)
 #SBATCH --gres=gpu:1               # Request 1 GPU
 #SBATCH --cpus-per-task=4          # Number of CPU cores for data loading
 #SBATCH --mem=32G                  # Memory required
@@ -148,12 +148,11 @@ Create a file named `train.slurm` in the project root:
 #SBATCH --output=outputs/slurm-%j.out
 
 # Load modules and activate environment
-module load python/3.10
-module load cuda/11.8
-source .venv/bin/activate
+module load python/3.12 cuda/12.8 gcc/12.5
+source /nfs/hpc-share/your_onid/envs/vllm/bin/activate
 
 # Run the training script
-python src/train.py --data_path /scratch/your_onid/data-science-bowl-2018/stage1_train
+python src/train.py --data_path /nfs/hpc-share/your_onid/data-science-bowl-2018/stage1_train
 ```
 
 Submit the job to the queue:
