@@ -43,7 +43,7 @@ def main():
     criterion = MultiTaskLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    num_epochs = 20
+    num_epochs = 1
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
