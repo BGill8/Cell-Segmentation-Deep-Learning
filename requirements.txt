@@ -23,5 +23,4 @@ streamlit
 
 # Machine Learning Utilities
 scikit-image
-scikit-image>=0.22
 scipy
