@@ -83,17 +83,19 @@ class NucleiDataset(torch.utils.data.Dataset):
     return len(self.ids)
 
   #runs everytime DataLoader asks for one sample
+  #created so that the output images and mask are not saved on the disk but instead created in memory 
+  #and returned to the Dataloader each batch
   def __getitem__(self, idx):
 
     image_id = self.ids[idx]  #gets folder name for sample
 
     #Load image
-    img_path = os.path.join(self.root_dir, image_id, "images", image_id + ".png") #builds image path (ex: stage1_train/abc123/images/abc123.png)
+    img_path = os.path.join(self.root_dir, image_id, "images", image_id + ".png") #builds image path (ex: data/data-science-bowl-2018/stage1_train/abc123/images/abc123.png)
     image = cv2.imread(img_path)  #loads image
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  #converts it to RGB
 
     #Load all masks
-    mask_dir = os.path.join(self.root_dir, image_id, "masks") #finds all individual nucleus mask PNGs
+    mask_dir = os.path.join(self.root_dir, image_id, "masks") #finds all individual nucleus mask PNGs (data/data-science-bowl-2018/stage1_train/abc123/masks/)
     mask_files = os.listdir(mask_dir)
 
     masks = []
@@ -106,7 +108,6 @@ class NucleiDataset(torch.utils.data.Dataset):
     #USED TO STACK THE MASKS
     masks = np.stack(masks, axis=0)  # (N, H, W)
 
-
     #Apply augmentation to image and its masks
     if self.transform:
        #uses transform function to randomly augment images AND along with its masks
@@ -115,12 +116,31 @@ class NucleiDataset(torch.utils.data.Dataset):
       image = augmented["image"]
       masks = np.stack(augmented["masks"], axis=0)
 
-    # Convert to tensors
-    image = torch.tensor(image).permute(2, 0, 1).float()   #permute so shape is (C, H, W)
-    masks = torch.tensor(masks).float() #convert the masks to tensors (N, H, W)
+    #collapse all nucleus masks into one image
+    semantic_mask = (np.sum(masks, axis=0) > 0).astype(np.float32)
 
-    return image, masks
+    #creates an empty (H, W) map full of zeroes
+    distance_map = np.zeros_like(semantic_mask, dtype=np.float32)
+
+    #loops through each individual nucelus masks and compute a distance transformation
+    for mask in masks: 
+      mask_uint8 = mask.astype(np.uint8)
+      dist = cv2.distanceTransform(mask_uint8, cv2.DIST_L2, 5)
+      distance_map = np.maximum(distance_map, dist)
+
+  
+    # Convert to tensors
+    image = torch.tensor(image).permute(2, 0, 1).float() / 255.0   #permute so shape is (C, H, W)
+    
+    #converts to tensors
+    target = np.stack([semantic_mask, distance_map], axis=0)
+    target = torch.tensor(target).float()
+
+    return image, target
 
     #model receives:
-    #image → (3, H, W) --> (number of channels, height of image, width of image)
-    #masks → (N, H, W) --> (number of nucleus, height of mask, width of mask)
+    #image (3, H, W) --> (number of channels, height of image, width of image)
+
+    #target (2, H, W) --> means the target is no longer “one separate mask per nucleus.” Instead, it is two image-sized maps stacked together:
+      #Channel 0: one combined semantic mask for all nuclei
+      #Channel 1: one distance map
