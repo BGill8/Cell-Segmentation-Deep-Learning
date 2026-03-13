@@ -40,3 +40,19 @@ for epoch in range(num_epochs):
     for images, masks in train_loader:
 
         #this is where you define the training...
+
+
+
+    #FINAL GOAL:
+    #For each image, model must predict
+    #Instance masks
+
+    #EX: if image has 10 nuclei, must output 18 masks
+
+
+
+
+    #NOTES for implementing the UNET structure:
+
+    #They did not feed (N, H, W) instance masks directly into U-Net, because the number of nuclei N changes per image.
+    #Instead, they converted the instance masks into fixed-size pixel maps so the network always predicts the same output shape.

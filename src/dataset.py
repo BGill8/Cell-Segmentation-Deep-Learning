@@ -83,6 +83,8 @@ class NucleiDataset(torch.utils.data.Dataset):
     return len(self.ids)
 
   #runs everytime DataLoader asks for one sample
+  #created so that the output images and mask are not saved on the disk but instead created in memory 
+  #and returned to the Dataloader each batch
   def __getitem__(self, idx):
 
     image_id = self.ids[idx]  #gets folder name for sample
