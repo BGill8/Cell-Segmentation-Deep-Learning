@@ -27,7 +27,7 @@ def main():
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=4,       # start with 1 because instance masks vary
+        batch_size=1,       # start with 1 because instance masks vary
         shuffle=True,
         num_workers=2
     )
