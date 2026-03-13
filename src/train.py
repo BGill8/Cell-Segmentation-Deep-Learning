@@ -27,7 +27,7 @@ def main():
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=4,       # start with 1 because instance masks vary
+        batch_size=1,       # start with 1 because instance masks vary
         shuffle=True,
         num_workers=2
     )
@@ -92,6 +92,7 @@ def main():
         pred_semantic = torch.sigmoid(output[0, 0]).cpu().numpy()
         pred_dist = output[0, 1].cpu().numpy()
 
+    #POST PROCESSING 
     pred_instances = run_inference(model, sample_image)
     true_mask = sample_target[0].cpu().numpy()
 
