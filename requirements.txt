@@ -20,3 +20,7 @@ tqdm
 
 # Web Application (Optional for the end)
 streamlit
+
+# Machine Learning Utilities
+scikit-image
+scipy
