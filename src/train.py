@@ -16,9 +16,15 @@ from loss import MultiTaskLoss
 
 from utils import save_checkpoint, visualize_prediction, log_metrics_to_wandb
 from evaluate import run_inference
+import wandb
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    wandb.init(
+        project="cell-segmentation",
+        name="unet-instance-seg",
+        config={"batch_size": 4, "learning_rate": 1e-4, "epochs": 10},
+    )
 
     train_dataset = NucleiDataset(
         root_dir="data/data-science-bowl-2018/stage1_train",
@@ -27,7 +33,7 @@ def main():
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=1,       # start with 1 because instance masks vary
+        batch_size=4,       # start with 1 because instance masks vary
         shuffle=True,
         num_workers=2
     )
@@ -40,10 +46,11 @@ def main():
         break
 
     model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
+    wandb.watch(model, log="all", log_freq=10)
     criterion = MultiTaskLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    num_epochs = 1
+    num_epochs = 10
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
@@ -66,6 +73,7 @@ def main():
 
         avg_loss = epoch_loss / len(train_loader)
         print(f"Epoch [{epoch + 1} / {num_epochs}] - Loss: {avg_loss:.4f}")
+        wandb.log({"epoch": epoch + 1, "train_loss": avg_loss})
 
         log_metrics_to_wandb({"train loss": avg_loss}, epoch)
 
@@ -83,18 +91,20 @@ def main():
 
     
 
+    print("Checkpoint saved. Running inference on a sample image...")
+
     model.eval()
     sample_image, sample_target = train_dataset[0]
-
 
     with torch.no_grad():
         output = model(sample_image.unsqueeze(0).to(device))
         pred_semantic = torch.sigmoid(output[0, 0]).cpu().numpy()
         pred_dist = output[0, 1].cpu().numpy()
 
-    #POST PROCESSING 
     pred_instances = run_inference(model, sample_image)
     true_mask = sample_target[0].cpu().numpy()
+
+    print("Saving visualization to prediction_example.png...")
 
     visualize_prediction(
         image=sample_image,
@@ -104,6 +114,10 @@ def main():
         pred_instances=pred_instances,
         save_path="prediction_example.png",
     )
+
+    print("Visualization saved.")
+    wandb.log({"prediction_example": wandb.Image("prediction_example.png")})
+    wandb.finish()
 
 
 if __name__ == "__main__":
