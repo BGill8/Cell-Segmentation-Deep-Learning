@@ -7,42 +7,106 @@ Contains the training loop and logs metrics directly to Weights & Biases (WandB)
 
 #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #print(f"Using device: {device}")
-
-from dataset import NucleiDataset, transform
 from torch.utils.data import DataLoader
 import torch
 
-train_dataset = NucleiDataset(
-    root_dir="data/data-science-bowl-2018/stage1_train",
-    transform=transform
-)
+from dataset import NucleiDataset, transform
+from model import UNetInstanceSeg
+from loss import MultiTaskLoss
 
-train_loader = DataLoader(
-    train_dataset,
-    batch_size=1,       # start with 1 because instance masks vary
-    shuffle=True,
-    num_workers=2
-)
+from utils import save_checkpoint, visualize_prediction, log_metrics_to_wandb
+from evaluate import run_inference
+
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    train_dataset = NucleiDataset(
+        root_dir="data/data-science-bowl-2018/stage1_train",
+        transform=transform
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=4,       # start with 1 because instance masks vary
+        shuffle=True,
+        num_workers=2
+    )
 
 
-#before testing to check:
-for images, masks in train_loader:
-    print(images.shape)
-    print(masks.shape)
-    break
-
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-num_epochs = 20
-for epoch in range(num_epochs):
-
+    #before testing to check:
     for images, masks in train_loader:
+        print(images.shape)
+        print(masks.shape)
+        break
 
-        #this is where you define the training...
+    model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
+    criterion = MultiTaskLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+    num_epochs = 20
+    for epoch in range(num_epochs):
+        model.train()
+        epoch_loss = 0.0
+        
+        for images, targets in train_loader:    
+
+            #this is where you define the training...
+            images = images.to(device)
+            targets = targets.to(device)
+
+            optimizer.zero_grad()
+
+            predictions = model(images)
+            loss, loss_dict = criterion(predictions, targets)
+
+            loss.backward()
+            optimizer.step()
+
+            epoch_loss += loss.item()
+
+        avg_loss = epoch_loss / len(train_loader)
+        print(f"Epoch [{epoch + 1} / {num_epochs}] - Loss: {avg_loss:.4f}")
+
+        log_metrics_to_wandb({"train loss": avg_loss}, epoch)
+
+        save_checkpoint(
+            {
+            "state_dict": model.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "epoch": epoch + 1,
+            "best_mAP": 0.0,
+            },
+            filename="checkpoint.pth.tar",
+        )
 
 
 
+    
+
+    model.eval()
+    sample_image, sample_target = train_dataset[0]
+
+
+    with torch.no_grad():
+        output = model(sample_image.unsqueeze(0).to(device))
+        pred_semantic = torch.sigmoid(output[0, 0]).cpu().numpy()
+        pred_dist = output[0, 1].cpu().numpy()
+
+    pred_instances = run_inference(model, sample_image)
+    true_mask = sample_target[0].cpu().numpy()
+
+    visualize_prediction(
+        image=sample_image,
+        true_mask=true_mask,
+        pred_semantic=pred_semantic,
+        pred_dist=pred_dist,
+        pred_instances=pred_instances,
+        save_path="prediction_example.png",
+    )
+
+
+if __name__ == "__main__":
+    main()
     #FINAL GOAL:
     #For each image, model must predict
     #Instance masks
