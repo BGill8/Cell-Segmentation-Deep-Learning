@@ -49,14 +49,6 @@ transform = A.Compose([
         p=0.4,
     ),
 
-    #15% chance block triggers, and picks one of these
-    #A.OneOf([
-        #A.ElasticTransform(alpha=60, sigma=8),
-        #A.Perspective(scale=(0.02, 0.05)),
-        #A.PiecewiseAffine(scale=(0.01, 0.03)),
-        #A.OpticalDistortion(distort_limit=0.05),
-    #], p=0.15),
-
     # ----- Intensity / appearance (image only) -----
 
     #20% chance block triggers, and picks one of these
@@ -71,12 +63,14 @@ transform = A.Compose([
         A.Emboss(alpha=(0.1, 0.3), strength=(0.2, 0.5)),
     ], p=0.1),  
 
-    
-
     #10% chance of shuffling
     A.ChannelShuffle(p=0.1),
     #5 chance of grayscaling
     A.ToGray(p=0.05),
+])
+
+val_transform = A.Compose([
+    A.Resize(256, 256),
 ])
 
 #create custom dataset
@@ -85,7 +79,8 @@ class NucleiDataset(torch.utils.data.Dataset):
   #runs once you create dataset
   def __init__(self, root_dir, transform=None):
     self.root_dir = root_dir  #stores dataset path
-    self.ids = os.listdir(root_dir) #lists all folders inside root_dir (each folder = one image)
+    # Filter out hidden files like .DS_Store
+    self.ids = [i for i in os.listdir(root_dir) if not i.startswith('.')]
     self.transform = transform  #stores aug pipeline
 
 
@@ -101,12 +96,12 @@ class NucleiDataset(torch.utils.data.Dataset):
     image_id = self.ids[idx]  #gets folder name for sample
 
     #Load image
-    img_path = os.path.join(self.root_dir, image_id, "images", image_id + ".png") #builds image path (ex: data/data-science-bowl-2018/stage1_train/abc123/images/abc123.png)
+    img_path = os.path.join(self.root_dir, image_id, "images", image_id + ".png") #builds image path
     image = cv2.imread(img_path)  #loads image
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  #converts it to RGB
 
     #Load all masks
-    mask_dir = os.path.join(self.root_dir, image_id, "masks") #finds all individual nucleus mask PNGs (data/data-science-bowl-2018/stage1_train/abc123/masks/)
+    mask_dir = os.path.join(self.root_dir, image_id, "masks") #finds all individual nucleus mask PNGs
     mask_files = os.listdir(mask_dir)
 
     masks = []
@@ -145,18 +140,17 @@ class NucleiDataset(torch.utils.data.Dataset):
       distance_map = np.maximum(distance_map, dist)
 
   
+    # Create labeled instance map for validation mAP
+    labeled_mask = np.zeros_like(semantic_mask, dtype=np.int32)
+    for i, mask in enumerate(masks):
+        labeled_mask[mask > 0] = i + 1
+
     # Convert to tensors
-    image = torch.tensor(image).permute(2, 0, 1).float() / 255.0   #permute so shape is (C, H, W)
+    image = torch.tensor(image).permute(2, 0, 1).float() / 255.0   # permute so shape is (C, H, W)
     
-    #converts to tensors
+    # converts to tensors
     target = np.stack([semantic_mask, distance_map], axis=0)
     target = torch.tensor(target).float()
+    labeled_mask = torch.tensor(labeled_mask).long()
 
-    return image, target
-
-    #model receives:
-    #image (3, H, W) --> (number of channels, height of image, width of image)
-
-    #target (2, H, W) --> means the target is no longer “one separate mask per nucleus.” Instead, it is two image-sized maps stacked together:
-      #Channel 0: one combined semantic mask for all nuclei
-      #Channel 1: one distance map
+    return image, target, labeled_mask

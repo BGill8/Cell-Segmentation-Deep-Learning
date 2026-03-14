@@ -24,3 +24,6 @@ wandb/
 # OS generated files
 .DS_Store
 Thumbs.db
+checkpoint.pth.tar
+outputs/
+prediction_example.png
