@@ -50,28 +50,33 @@ transform = A.Compose([
     ),
 
     #15% chance block triggers, and picks one of these
-    A.OneOf([
-        A.ElasticTransform(alpha=60, sigma=8),
-        A.Perspective(scale=(0.02, 0.05)),
-        A.PiecewiseAffine(scale=(0.01, 0.03)),
-        A.OpticalDistortion(distort_limit=0.05),
-    ], p=0.15),
+    #A.OneOf([
+        #A.ElasticTransform(alpha=60, sigma=8),
+        #A.Perspective(scale=(0.02, 0.05)),
+        #A.PiecewiseAffine(scale=(0.01, 0.03)),
+        #A.OpticalDistortion(distort_limit=0.05),
+    #], p=0.15),
 
     # ----- Intensity / appearance (image only) -----
 
-    #25% chance block triggers, and picks one of these
+    #20% chance block triggers, and picks one of these
     A.OneOf([
         A.GaussNoise(std_range=(0.04, 0.10)),
         A.MotionBlur(blur_limit=5),
         A.MedianBlur(blur_limit=5),
+    ], p=0.2),  
+
+    A.OneOf([
         A.Sharpen(alpha=(0.1, 0.3), lightness=(0.7, 1.0)),
         A.Emboss(alpha=(0.1, 0.3), strength=(0.2, 0.5)),
-    ], p=0.25),  
+    ], p=0.1),  
 
-    #20% chance of shuffling
-    A.ChannelShuffle(p=0.2),
-    #10% chance of grayscaling
-    A.ToGray(p=0.1),
+    
+
+    #10% chance of shuffling
+    A.ChannelShuffle(p=0.1),
+    #5 chance of grayscaling
+    A.ToGray(p=0.05),
 ])
 
 #create custom dataset
@@ -132,6 +137,11 @@ class NucleiDataset(torch.utils.data.Dataset):
     for mask in masks: 
       mask_uint8 = mask.astype(np.uint8)
       dist = cv2.distanceTransform(mask_uint8, cv2.DIST_L2, 5)
+
+      #normalize distance target
+      max_dist = dist.max()
+      if max_dist > 0:
+        dist = dist / max_dist
       distance_map = np.maximum(distance_map, dist)
 
   

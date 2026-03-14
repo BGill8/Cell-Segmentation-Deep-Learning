@@ -23,7 +23,7 @@ def main():
     wandb.init(
         project="cell-segmentation",
         name="unet-instance-seg",
-        config={"batch_size": 4, "learning_rate": 1e-4, "epochs": 10},
+        config={"batch_size": 16, "learning_rate": 1e-4, "epochs": 30},
     )
 
     train_dataset = NucleiDataset(
@@ -33,7 +33,7 @@ def main():
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=4,       # start with 1 because instance masks vary
+        batch_size=16,       # start with 1 because instance masks vary
         shuffle=True,
         num_workers=2
     )
@@ -48,9 +48,11 @@ def main():
     model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
     wandb.watch(model, log="all", log_freq=10)
     criterion = MultiTaskLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    num_epochs = 10
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+
+    num_epochs = 30
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
@@ -73,7 +75,11 @@ def main():
 
         avg_loss = epoch_loss / len(train_loader)
         print(f"Epoch [{epoch + 1} / {num_epochs}] - Loss: {avg_loss:.4f}")
-        wandb.log({"epoch": epoch + 1, "train_loss": avg_loss})
+
+        current_lr = optimizer.param_groups[0]["lr"]
+        wandb.log({"epoch": epoch + 1, "train_loss": avg_loss, "lr": current_lr})
+        scheduler.step()
+
 
         log_metrics_to_wandb({"train loss": avg_loss}, epoch)
 
