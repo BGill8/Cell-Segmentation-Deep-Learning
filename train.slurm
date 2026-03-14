@@ -23,7 +23,7 @@ source .venv/bin/activate
 # Run the training script
 # We point to the scratch space to ensure high-speed I/O during training.
 python src/train.py \
-    --data_path /scratch/your_onid/data-science-bowl-2018/stage1_train \
+    --data_path data/data-science-bowl-2018/stage1_train \
     --epochs 50 \
     --batch_size 16 \
     --lr 1e-4 \
