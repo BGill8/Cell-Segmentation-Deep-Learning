@@ -23,7 +23,9 @@ def main():
     wandb.init(
         project="cell-segmentation",
         name="unet-instance-seg",
+
         config={"batch_size": 16, "learning_rate": 1e-4, "epochs": 30},
+
     )
 
     train_dataset = NucleiDataset(
@@ -53,6 +55,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     num_epochs = 30
+
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
@@ -82,6 +85,7 @@ def main():
 
 
         log_metrics_to_wandb({"train loss": avg_loss}, epoch)
+
 
         save_checkpoint(
             {

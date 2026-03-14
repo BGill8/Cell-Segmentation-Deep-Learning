@@ -12,8 +12,8 @@ class DiceLoss(nn.Module):
         probs = torch.sigmoid(logits)
 
         # Flatten tensors
-        probs = probs.view(-1)
-        targets = targets.view(-1)
+        probs = probs.reshape(-1)
+        targets = targets.reshape(-1)
 
         intersection = (probs * targets).sum()
         dice = (2. * intersection + self.smooth) / (probs.sum() + targets.sum() + self.smooth)
