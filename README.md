@@ -80,6 +80,7 @@ ssh your_onid@submit.hpc.engr.oregonstate.edu
 Clone the repository into your home directory or scratch space:
 
 ```bash
+cd hpc-share
 git clone https://github.com/BGill8/Cell-Segmentation-Deep-Learning.git
 cd Cell-Segmentation-Deep-Learning
 ```
@@ -94,6 +95,7 @@ Do **not** install packages directly to your base environment. Load the necessar
 # Load necessary modules (adjust versions based on current HPC availability)
 module load python/3.10
 module load cuda/11.8
+module load slurm
 
 # Create and activate virtual environment
 python -m venv .venv
@@ -108,15 +110,30 @@ pip install -r requirements.txt
 
 ## 3. Data Management
 
-> **Important:** Do not train directly out of your home directory. Move the 2018 Data Science Bowl dataset to the high-speed scratch storage to prevent I/O bottlenecks during the data loader's mask-merging process.
+> **Important:** Do not store data or environments in your home directory (`~`), or you will instantly hit a strict quota limit and crash. Keep everything in your high-capacity `~/hpc-share/` drive.
+
+Since the Kaggle CLI requires API key configuration, the easiest way to get the data onto the cluster is to download the `data-science-bowl-2018.zip` to your local machine, and securely copy it over:
+
+**1. Run this on your LOCAL machine (Mac/Windows), not the cluster:**
+```bash
+scp /path/to/your/downloads/data-science-bowl-2018.zip your_onid@submit.hpc.engr.oregonstate.edu:/nfs/stak/users/your_onid/hpc-share/Cell-Segmentation-Deep-Learning/
+```
+2. Extract and organize on the cluster:
 
 ```bash
-# Move data to scratch space
-cp -r data/data-science-bowl-2018 /nfs/hpc-share/your_onid/data-science-bowl-2018
+cd ~/hpc-share/Cell-Segmentation-Deep-Learning/
+mkdir -p data/data-science-bowl-2018
+unzip data-science-bowl-2018.zip -d data/data-science-bowl-2018/
+
+# Extract the inner training and testing folders
+cd data/data-science-bowl-2018
+for f in *.zip; do unzip -d "${f%.zip}" "$f"; done
+
+# CRITICAL: Delete all zip files to free up quota
+rm *.zip
+cd ../../
+rm data-science-bowl-2018.zip
 ```
-
-> **Note:** Ensure you update your dataset paths in `src/dataset.py` or pass the new scratch path as an argument when running your training script.
-
 ---
 
 ## 4. Weights & Biases (WandB) Login
