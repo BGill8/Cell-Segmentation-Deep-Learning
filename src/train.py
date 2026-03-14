@@ -18,7 +18,7 @@ import wandb
 import numpy as np
 
 # Local imports
-from dataset import NucleiDataset, transform
+from dataset import NucleiDataset, transform, val_transform
 from model import UNetInstanceSeg
 from loss import MultiTaskLoss
 from evaluate import run_inference
@@ -104,7 +104,7 @@ def main(args):
     
     # 1. Dataset & Loaders
     train_dataset = NucleiDataset(root_dir=args.data_path, transform=transform)
-    val_dataset = NucleiDataset(root_dir=args.data_path, transform=None)
+    val_dataset = NucleiDataset(root_dir=args.data_path, transform=val_transform)
     
     # Split into train/val (80/20)
     dataset_size = len(train_dataset)
