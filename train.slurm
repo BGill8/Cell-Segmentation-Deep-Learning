@@ -28,4 +28,4 @@ python src/train.py \
     --batch_size 16 \
     --lr 1e-4 \
     --num_workers 4 \
-    --wandb_project "cell-segmentation-ai535"
+    --wandb_project "cell-segmentation"
