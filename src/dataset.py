@@ -79,7 +79,8 @@ class NucleiDataset(torch.utils.data.Dataset):
   #runs once you create dataset
   def __init__(self, root_dir, transform=None):
     self.root_dir = root_dir  #stores dataset path
-    self.ids = os.listdir(root_dir) #lists all folders inside root_dir (each folder = one image)
+    # Filter out hidden files like .DS_Store
+    self.ids = [i for i in os.listdir(root_dir) if not i.startswith('.')]
     self.transform = transform  #stores aug pipeline
 
 
