@@ -12,7 +12,7 @@ import os
 import argparse
 import torch
 import torch.optim as optim
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 import wandb
 import numpy as np
@@ -103,12 +103,17 @@ def main(args):
     print(f"Using device: {device}")
     
     # 1. Dataset & Loaders
-    full_dataset = NucleiDataset(root_dir=args.data_path, transform=transform)
+    train_dataset = NucleiDataset(root_dir=args.data_path, transform=transform)
+    val_dataset = NucleiDataset(root_dir=args.data_path, transform=None)
     
     # Split into train/val (80/20)
-    train_size = int(0.8 * len(full_dataset))
-    val_size = len(full_dataset) - train_size
-    train_ds, val_ds = random_split(full_dataset, [train_size, val_size])
+    dataset_size = len(train_dataset)
+    indices = list(range(dataset_size))
+    np.random.shuffle(indices)
+    split = int(0.2 * dataset_size)
+    
+    train_ds = Subset(train_dataset, indices[split:])
+    val_ds = Subset(val_dataset, indices[:split])
     
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
@@ -117,6 +122,7 @@ def main(args):
     model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
     criterion = MultiTaskLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
     
     # 3. Training Loop
     best_mAP = 0.0
@@ -126,11 +132,14 @@ def main(args):
         train_loss, train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_mAP = validate(model, val_loader, device, epoch=epoch)
         
-        print(f"Train Loss: {train_loss:.4f} | Val mAP: {val_mAP:.4f}")
+        scheduler.step()
+        
+        print(f"Train Loss: {train_loss:.4f} | Val mAP: {val_mAP:.4f} | LR: {scheduler.get_last_lr()[0]:.6f}")
         
         # Log to WandB
         log_dict = {
             "epoch": epoch,
+            "lr": scheduler.get_last_lr()[0],
             "train_loss": train_loss,
             "val_mAP": val_mAP,
             **{f"train_{k}": v for k, v in train_metrics.items()}
