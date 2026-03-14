@@ -6,6 +6,7 @@ the detection (counting) and the exact boundary pixel accuracy of individual cel
 """
 
 import numpy as np
+
 def compute_iou(mask1, mask2):
     """Computes Intersection over Union (IoU) between two binary masks."""
     intersection = np.logical_and(mask1, mask2).sum()
@@ -13,6 +14,7 @@ def compute_iou(mask1, mask2):
     if union == 0:
         return 0
     return intersection / union
+
 def calculate_precision(pred_labeled, true_labeled, threshold):
     """
     Calculates precision at a specific IoU threshold.
@@ -25,13 +27,18 @@ def calculate_precision(pred_labeled, true_labeled, threshold):
     Returns:
         precision: TP / (TP + FP + FN)
     """
-    # Get unique IDs (excluding background 0)
-    pred_ids = np.unique(pred_labeled)[1:]
-    true_ids = np.unique(true_labeled)[1:]
+    # Safely get unique IDs (excluding background 0)
+    pred_ids = np.unique(pred_labeled)
+    pred_ids = pred_ids[pred_ids != 0]
+    
+    true_ids = np.unique(true_labeled)
+    true_ids = true_ids[true_ids != 0]
+
     if len(true_ids) == 0:
         return 1.0 if len(pred_ids) == 0 else 0.0
     if len(pred_ids) == 0:
         return 0.0
+
     # Compute IoU matrix between all pairs
     # Rows: True instances, Cols: Predicted instances
     iou_matrix = np.zeros((len(true_ids), len(pred_ids)))
@@ -41,6 +48,7 @@ def calculate_precision(pred_labeled, true_labeled, threshold):
         for j, p_id in enumerate(pred_ids):
             pred_mask = (pred_labeled == p_id)
             iou_matrix[i, j] = compute_iou(true_mask, pred_mask)
+
     # Count True Positives (TP)
     # A match is a TP if IoU > threshold
     matches = (iou_matrix > threshold)
@@ -58,9 +66,12 @@ def calculate_precision(pred_labeled, true_labeled, threshold):
             tp += 1
             used_true[i] = True
             used_pred[j] = True
+
     fp = len(pred_ids) - tp
     fn = len(true_ids) - tp
+
     return tp / (tp + fp + fn)
+
 def mean_average_precision(pred_labeled, true_labeled, thresholds=np.arange(0.5, 1.0, 0.05)):
     """
     Calculates the mean precision across multiple IoU thresholds.
@@ -78,4 +89,3 @@ def mean_average_precision(pred_labeled, true_labeled, thresholds=np.arange(0.5,
         precisions.append(calculate_precision(pred_labeled, true_labeled, t))
     
     return np.mean(precisions)
-
