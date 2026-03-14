@@ -145,18 +145,22 @@ class NucleiDataset(torch.utils.data.Dataset):
       distance_map = np.maximum(distance_map, dist)
 
   
+    # Create labeled instance map for validation mAP
+    labeled_mask = np.zeros_like(semantic_mask, dtype=np.int32)
+    for i, mask in enumerate(masks):
+        labeled_mask[mask > 0] = i + 1
+
     # Convert to tensors
-    image = torch.tensor(image).permute(2, 0, 1).float() / 255.0   #permute so shape is (C, H, W)
+    image = torch.tensor(image).permute(2, 0, 1).float() / 255.0   # permute so shape is (C, H, W)
     
-    #converts to tensors
+    # converts to tensors
     target = np.stack([semantic_mask, distance_map], axis=0)
     target = torch.tensor(target).float()
+    labeled_mask = torch.tensor(labeled_mask).long()
 
-    return image, target
+    return image, target, labeled_mask
 
-    #model receives:
-    #image (3, H, W) --> (number of channels, height of image, width of image)
-
-    #target (2, H, W) --> means the target is no longer “one separate mask per nucleus.” Instead, it is two image-sized maps stacked together:
-      #Channel 0: one combined semantic mask for all nuclei
-      #Channel 1: one distance map
+    # model receives:
+    # image (3, H, W)
+    # target (2, H, W) -> Channel 0: Semantic, Channel 1: Distance
+    # labeled_mask (H, W) -> Unique ID per nucleus (for validation only)
