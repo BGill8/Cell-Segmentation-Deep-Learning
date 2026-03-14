@@ -23,7 +23,7 @@ def main():
     wandb.init(
         project="cell-segmentation",
         name="unet-instance-seg",
-        config={"batch_size": 4, "learning_rate": 1e-4, "epochs": 10},
+        config={"batch_size": 4, "learning_rate": 1e-4, "epochs": 50},
     )
 
     train_dataset = NucleiDataset(
@@ -50,7 +50,7 @@ def main():
     criterion = MultiTaskLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    num_epochs = 10
+    num_epochs = 50
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
@@ -73,9 +73,11 @@ def main():
 
         avg_loss = epoch_loss / len(train_loader)
         print(f"Epoch [{epoch + 1} / {num_epochs}] - Loss: {avg_loss:.4f}")
-        wandb.log({"epoch": epoch + 1, "train_loss": avg_loss})
-
-        log_metrics_to_wandb({"train loss": avg_loss}, epoch)
+        
+        wandb.log({
+            "epoch": epoch + 1, 
+            "train_loss": avg_loss
+        })
 
         save_checkpoint(
             {
