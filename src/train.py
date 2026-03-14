@@ -55,6 +55,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     num_epochs = 30
+    best_loss = float("inf")
 
     for epoch in range(num_epochs):
         model.train()
@@ -85,6 +86,18 @@ def main():
 
 
         log_metrics_to_wandb({"train loss": avg_loss}, epoch)
+
+        if avg_loss < best_loss:
+            best_loss = avg_loss
+            save_checkpoint(                                    #IF LOSS IS THE BEST SO FAR, SAVE BEST CHECKPOINT
+                {
+                "state_dict": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "epoch": epoch + 1,
+                "best_loss": best_loss,
+                },
+                filename="best_checkpoint.pth.tar",
+            )
 
 
         save_checkpoint(
