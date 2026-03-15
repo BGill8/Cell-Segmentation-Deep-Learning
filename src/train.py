@@ -120,7 +120,7 @@ def main(args):
     criterion = MultiTaskLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     
-    # Scheduler added by partner
+    # Partner's addition: Learning Rate Scheduler (We will keep his step_size=10 tweak)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
     
     # 3. Training Loop
@@ -133,6 +133,7 @@ def main(args):
         train_loss, train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_mAP = validate(model, val_loader, device, epoch=epoch)
         
+        # Step the scheduler
         scheduler.step()
         
         current_lr = scheduler.get_last_lr()[0]
@@ -148,7 +149,7 @@ def main(args):
         }
         wandb.log(log_dict)
         
-        # Save best model by Accuracy (mAP)
+        # Save best model by mAP
         if val_mAP > best_mAP:
             best_mAP = val_mAP
             save_checkpoint({
@@ -158,7 +159,7 @@ def main(args):
                 'best_mAP': best_mAP,
             }, filename="checkpoints/best_model_mAP.pth.tar")
             
-        # Save best model by Loss (Partner's preference)
+        # Save best model by Loss
         if train_loss < best_loss:
             best_loss = train_loss
             save_checkpoint({

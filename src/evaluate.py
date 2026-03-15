@@ -80,6 +80,45 @@ def run_inference(model, image_tensor):
         
     return instances
 
+def run_ensemble_inference(models, image_tensor, semantic_threshold=0.5, dist_threshold=0.3):
+    """
+    Runs multiple trained models on one image, averages their outputs,
+    and applies watershed post-processing.
+
+    Args:
+        models: list of trained models
+        image_tensor: [3, H, W] input image
+        semantic_threshold: threshold for semantic mask
+        dist_threshold: threshold for distance-map markers
+
+    Returns:
+        instances: [H, W] labeled instance mask
+    """
+    for model in models:
+        model.eval()
+
+    with torch.no_grad():
+        input_batch = image_tensor.unsqueeze(0).to(device)
+
+        outputs = []
+        for model in models:
+            output = model(input_batch)
+            outputs.append(output)
+            
+        avg_output = torch.mean(torch.stack(outputs), dim=0)  # [1, 2, H, W]
+
+        semantic_logits = avg_output[0, 0, :, :]
+        distance_map = avg_output[0, 1, :, :]
+
+        instances = post_process_watershed(
+            semantic_logits,
+            distance_map,
+            semantic_threshold=semantic_threshold,
+            dist_threshold=dist_threshold,
+        )
+
+    return instances
+
 
 def run_ensemble_inference(models, image_tensor, semantic_threshold=0.5, dist_threshold=0.3):
     """
