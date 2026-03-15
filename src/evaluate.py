@@ -98,7 +98,12 @@ def run_ensemble_inference(models, image_tensor, semantic_threshold=0.5, dist_th
         model.eval()
 
     with torch.no_grad():
-        input_batch = image_tensor.unsqueeze(0).to(device)
+        if models:
+            device_for_models = next(models[0].parameters()).device
+        else:
+            device_for_models = device
+
+        input_batch = image_tensor.unsqueeze(0).to(device_for_models)
 
         outputs = []
         for model in models:
@@ -139,7 +144,12 @@ def run_ensemble_inference(models, image_tensor, semantic_threshold=0.5, dist_th
         model.eval()
 
     with torch.no_grad():
-        input_batch = image_tensor.unsqueeze(0).to(device)
+        if models:
+            device_for_models = next(models[0].parameters()).device
+        else:
+            device_for_models = device
+
+        input_batch = image_tensor.unsqueeze(0).to(device_for_models)
 
         outputs = []
         for model in models:
