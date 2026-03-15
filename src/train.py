@@ -26,13 +26,13 @@ from evaluate import run_inference
 from metrics import mean_average_precision
 from utils import save_checkpoint, visualize_prediction
 
-def train_one_epoch(model, loader, optimizer, criterion, device):
+def train_one_epoch(model, loader, optimizer, criterion, device, epoch):
     model.train()
     total_loss = 0
     metrics_sum = {"bce": 0, "dice": 0, "mse": 0}
     
     pbar = tqdm(loader, desc="Training")
-    for images, targets, _ in pbar:
+    for batch_idx, (images, targets, _) in enumerate(pbar):
         images = images.to(device)
         targets = targets.to(device)
         
@@ -48,6 +48,15 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
             metrics_sum[k] += loss_dict[k]
             
         pbar.set_postfix(loss=loss.item())
+
+        # Log sub-epoch metrics every 10 batches for live charts
+        if batch_idx % 10 == 0:
+            wandb.log({
+                "iter_loss": loss.item(),
+                "iter_mse": loss_dict["mse"],
+                "iter_dice": loss_dict["dice"],
+                "train_step": epoch * len(loader) + batch_idx
+            })
         
     avg_loss = total_loss / len(loader)
     return avg_loss, {k: v / len(loader) for k, v in metrics_sum.items()}
