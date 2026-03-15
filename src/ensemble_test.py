@@ -1,4 +1,4 @@
-#This program runs emsemble methods on 3 checkpoints
+#This program runs ensemble methods on 3 checkpoints
 
 #how it works high level is when you run train.py 3 times to which it saves
 #the outputs in 3 models
