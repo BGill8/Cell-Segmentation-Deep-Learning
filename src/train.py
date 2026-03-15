@@ -4,6 +4,7 @@ Features:
 - Multi-task learning (Semantic Mask + Distance Map)
 - HPC-ready with argparse and SLURM integration
 - Automatic validation split from stage1_train
+- Learning Rate Scheduler (StepLR)
 - mAP calculation using Watershed post-processing
 - Logging to Weights & Biases (WandB)
 """
@@ -25,13 +26,13 @@ from evaluate import run_inference
 from metrics import mean_average_precision
 from utils import save_checkpoint, visualize_prediction
 
-def train_one_epoch(model, loader, optimizer, criterion, device):
+def train_one_epoch(model, loader, optimizer, criterion, device, epoch):
     model.train()
     total_loss = 0
     metrics_sum = {"bce": 0, "dice": 0, "mse": 0}
     
     pbar = tqdm(loader, desc="Training")
-    for images, targets, _ in pbar:
+    for batch_idx, (images, targets, _) in enumerate(pbar):
         images = images.to(device)
         targets = targets.to(device)
         
@@ -47,6 +48,15 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
             metrics_sum[k] += loss_dict[k]
             
         pbar.set_postfix(loss=loss.item())
+
+        # Log sub-epoch metrics every 10 batches for live charts
+        if batch_idx % 10 == 0:
+            wandb.log({
+                "iter_loss": loss.item(),
+                "iter_mse": loss_dict["mse"],
+                "iter_dice": loss_dict["dice"],
+                "train_step": epoch * len(loader) + batch_idx
+            })
         
     avg_loss = total_loss / len(loader)
     return avg_loss, {k: v / len(loader) for k, v in metrics_sum.items()}
@@ -62,9 +72,6 @@ def validate(model, loader, device, epoch=None):
         for images, targets, labeled_masks in tqdm(loader, desc="Validating"):
             images = images.to(device)
             
-            # targets: [B, 2, H, W]
-            # labeled_masks: [B, H, W]
-            
             for i in range(images.size(0)):
                 img = images[i]
                 true_labeled = labeled_masks[i].cpu().numpy()
@@ -78,7 +85,6 @@ def validate(model, loader, device, epoch=None):
                 
                 # Visualize the first image of the batch to WandB
                 if not visualized:
-                    # Get model raw outputs for visualization
                     output = model(img.unsqueeze(0))
                     pred_semantic = torch.sigmoid(output[0, 0]).cpu().numpy()
                     pred_dist = output[0, 1].cpu().numpy()
@@ -118,35 +124,41 @@ def main(args):
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
     
-    # 2. Model, Loss, Optimizer
+    # 2. Model, Loss, Optimizer, Scheduler
     model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
     criterion = MultiTaskLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    
+    # Partner's addition: Learning Rate Scheduler (We will keep his step_size=10 tweak)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
     
     # 3. Training Loop
     best_mAP = 0.0
+    best_loss = float('inf')
+
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch+1}/{args.epochs}")
         
-        train_loss, train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        train_loss, train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, device, epoch)
         val_mAP = validate(model, val_loader, device, epoch=epoch)
         
+        # Step the scheduler
         scheduler.step()
         
-        print(f"Train Loss: {train_loss:.4f} | Val mAP: {val_mAP:.4f} | LR: {scheduler.get_last_lr()[0]:.6f}")
+        current_lr = scheduler.get_last_lr()[0]
+        print(f"Train Loss: {train_loss:.4f} | Val mAP: {val_mAP:.4f} | LR: {current_lr:.6f}")
         
         # Log to WandB
         log_dict = {
             "epoch": epoch,
-            "lr": scheduler.get_last_lr()[0],
+            "lr": current_lr,
             "train_loss": train_loss,
             "val_mAP": val_mAP,
             **{f"train_{k}": v for k, v in train_metrics.items()}
         }
         wandb.log(log_dict)
         
-        # Save best model
+        # Save best model by mAP
         if val_mAP > best_mAP:
             best_mAP = val_mAP
             save_checkpoint({
@@ -154,7 +166,17 @@ def main(args):
                 'state_dict': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 'best_mAP': best_mAP,
-            }, filename="checkpoints/best_model.pth.tar")
+            }, filename="checkpoints/best_model_mAP.pth.tar")
+            
+        # Save best model by Loss
+        if train_loss < best_loss:
+            best_loss = train_loss
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'best_loss': best_loss,
+            }, filename="checkpoints/best_model_loss.pth.tar")
             
         # Regular checkpoint
         if (epoch + 1) % 10 == 0:
