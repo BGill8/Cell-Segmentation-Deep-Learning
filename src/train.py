@@ -139,7 +139,7 @@ def main(args):
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch+1}/{args.epochs}")
         
-        train_loss, train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        train_loss, train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, device, epoch)
         val_mAP = validate(model, val_loader, device, epoch=epoch)
         
         # Step the scheduler
