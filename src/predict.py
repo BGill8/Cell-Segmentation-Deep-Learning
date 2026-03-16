@@ -11,6 +11,10 @@ import torch
 import cv2
 import numpy as np
 from tqdm import tqdm
+
+# Force matplotlib to use a non-interactive backend for HPC stability
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 # Local imports
@@ -19,6 +23,9 @@ from evaluate import post_process_watershed
 
 def load_model(checkpoint_path, device):
     """Loads a trained UNetInstanceSeg model from a checkpoint."""
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
+        
     model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
     checkpoint = torch.load(checkpoint_path, map_location=device)
     
@@ -31,6 +38,9 @@ def load_model(checkpoint_path, device):
 def preprocess_image(img_path, target_size=(256, 256)):
     """Loads and preprocesses an image for the model."""
     image = cv2.imread(img_path)
+    if image is None:
+        raise ValueError(f"Could not read image at: {img_path}")
+        
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
     # Save original size for post-processing if needed
@@ -74,45 +84,55 @@ def main(args):
         if not os.path.exists(img_path):
             continue
             
-        # Preprocess
-        image_tensor, image_rgb, original_size = preprocess_image(img_path)
+        try:
+            # Preprocess
+            image_tensor, image_rgb, original_size = preprocess_image(img_path)
+            
+            # Inference
+            semantic_logits, distance_map = run_prediction(model, image_tensor, device)
+            
+            # Post-process (Watershed)
+            instances = post_process_watershed(
+                semantic_logits, 
+                distance_map,
+                semantic_threshold=args.semantic_threshold,
+                dist_threshold=args.dist_threshold
+            )
+            
+            # Resize back to original if requested
+            if args.save_original_size:
+                instances = cv2.resize(
+                    instances.astype(np.float32), 
+                    (original_size[1], original_size[0]), 
+                    interpolation=cv2.INTER_NEAREST
+                ).astype(np.int32)
+                
+            # Save results
+            if args.visualize:
+                fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+                # Use original image if possible for high-res visualization
+                if args.save_original_size:
+                    axes[0].imshow(image_rgb if original_size[0] == 256 else cv2.imread(img_path)[:,:,::-1])
+                else:
+                    axes[0].imshow(image_rgb)
+                
+                axes[0].set_title("Original Image")
+                axes[0].axis("off")
+                
+                axes[1].imshow(instances, cmap="nipy_spectral")
+                axes[1].set_title(f"Predicted Instances ({instances.max()} nuclei)")
+                axes[1].axis("off")
+                
+                plt.savefig(os.path.join(args.output_dir, f"{img_id}_pred.png"))
+                plt.close(fig) # Explicitly pass fig to close
+                
+            # Optional: Save raw instance mask as a numpy file
+            if args.save_masks:
+                np.save(os.path.join(args.output_dir, f"{img_id}_mask.npy"), instances)
         
-        # Inference
-        semantic_logits, distance_map = run_prediction(model, image_tensor, device)
-        
-        # Post-process (Watershed)
-        instances = post_process_watershed(
-            semantic_logits, 
-            distance_map,
-            semantic_threshold=args.semantic_threshold,
-            dist_threshold=args.dist_threshold
-        )
-        
-        # Resize back to original if requested
-        if args.save_original_size:
-            instances = cv2.resize(
-                instances.astype(np.float32), 
-                (original_size[1], original_size[0]), 
-                interpolation=cv2.INTER_NEAREST
-            ).astype(np.int32)
-            
-        # Save results
-        if args.visualize:
-            fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-            axes[0].imshow(image_rgb if not args.save_original_size else cv2.imread(img_path)[:,:,::-1])
-            axes[0].set_title("Original Image")
-            axes[0].axis("off")
-            
-            axes[1].imshow(instances, cmap="nipy_spectral")
-            axes[1].set_title(f"Predicted Instances ({instances.max()} nuclei)")
-            axes[1].axis("off")
-            
-            plt.savefig(os.path.join(args.output_dir, f"{img_id}_pred.png"))
-            plt.close()
-            
-        # Optional: Save raw instance mask as a numpy file or PNG
-        if args.save_masks:
-            np.save(os.path.join(args.output_dir, f"{img_id}_mask.npy"), instances)
+        except Exception as e:
+            print(f"Error processing {img_id}: {e}")
+            continue
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict Nuclei Instances")
