@@ -19,7 +19,7 @@ def load_test_image(image_path, size=(256, 256)):
 
 
 def main():
-    checkpoint_path = "src/checkpoint.pth.tar"
+    checkpoint_path = "checkpoints/best_model_mAP.pth.tar"
     image_path = "path/to/test_image.png"
 
     model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
