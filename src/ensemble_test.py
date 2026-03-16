@@ -19,7 +19,8 @@ def load_models(checkpoint_paths, device):
     models = []
     for path in checkpoint_paths:
         model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
-        checkpoint = torch.load(path, map_location=device)
+        # Set weights_only=False to allow loading custom metadata/numpy scalars
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
         state_dict = checkpoint["state_dict"] if "state_dict" in checkpoint else checkpoint
         model.load_state_dict(state_dict)
         model.eval()
