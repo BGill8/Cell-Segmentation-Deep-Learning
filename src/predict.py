@@ -27,7 +27,9 @@ def load_model(checkpoint_path, device):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
         
     model = UNetInstanceSeg(n_channels=3, n_classes=2).to(device)
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    
+    # Set weights_only=False to allow loading custom objects/numpy scalars saved in checkpoint
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     
     # Handle both full state dict and partial state dict
     state_dict = checkpoint["state_dict"] if "state_dict" in checkpoint else checkpoint
