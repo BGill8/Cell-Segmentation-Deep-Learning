@@ -64,7 +64,13 @@ def visualize_prediction(image, true_mask, pred_semantic, pred_dist, pred_instan
     
     # 5. Final Watershed Instances
     # Use a random colormap to distinguish instances
-    axes[4].imshow(pred_instances, cmap="nipy_spectral")
+    num_labels = int(pred_instances.max()) + 1
+    rng = np.random.default_rng(42)
+    colors = rng.random((num_labels, 3))
+    colors[0] = [0, 0, 0]  # background black
+    colored_instances = colors[pred_instances.astype(int)]
+    axes[4].imshow(colored_instances)
+
     axes[4].set_title("Final: Instances")
     axes[4].axis("off")
     
