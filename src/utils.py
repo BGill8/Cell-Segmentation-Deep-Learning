@@ -27,63 +27,40 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, lr=None):
 def visualize_prediction(image, true_mask, pred_semantic, pred_dist, pred_instances, epoch=None, save_path=None):
     """
     Creates a 5-panel visualization of the model's performance.
-    
-    Args:
-        image: [3, H, W] tensor or numpy array (RGB)
-        true_mask: [H, W] binary ground truth
-        pred_semantic: [H, W] predicted semantic probabilities
-        pred_dist: [H, W] predicted distance map
-        pred_instances: [H, W] final labeled instances from watershed
     """
     # Convert image tensor to numpy [H, W, 3] if needed
     if isinstance(image, torch.Tensor):
         image = image.permute(1, 2, 0).cpu().numpy()
-        # Denormalize if necessary (assuming 0-1 range for now)
     
     fig, axes = plt.subplots(1, 5, figsize=(20, 4))
     
-    # 1. Original Image
-    axes[0].imshow(image)
-    axes[0].set_title("Original Image")
-    axes[0].axis("off")
+    # Panels 1-4
+    axes[0].imshow(image); axes[0].set_title("Original Image"); axes[0].axis("off")
+    axes[1].imshow(true_mask, cmap="gray"); axes[1].set_title("Ground Truth"); axes[1].axis("off")
+    axes[2].imshow(pred_semantic, cmap="jet"); axes[2].set_title("Pred: Semantic"); axes[2].axis("off")
+    axes[3].imshow(pred_dist, cmap="hot"); axes[3].set_title("Pred: Distance"); axes[3].axis("off")
     
-    # 2. Ground Truth (Semantic)
-    axes[1].imshow(true_mask, cmap="gray")
-    axes[1].set_title("Ground Truth")
-    axes[1].axis("off")
-    
-    # 3. Predicted Semantic Probability
-    axes[2].imshow(pred_semantic, cmap="jet")
-    axes[2].set_title("Pred: Semantic")
-    axes[2].axis("off")
-    
-    # 4. Predicted Distance Map
-    axes[3].imshow(pred_dist, cmap="hot")
-    axes[3].set_title("Pred: Distance")
-    axes[3].axis("off")
-    
-    # 5. Final Watershed Instances
-    # Use a random colormap to distinguish instances
-    num_labels = int(pred_instances.max()) + 1
-    rng = np.random.default_rng(42)
-    colors = rng.random((num_labels, 3))
-    colors[0] = [0, 0, 0]  # background black
-    colored_instances = colors[pred_instances.astype(int)]
-    axes[4].imshow(colored_instances)
-
-    axes[4].set_title("Final: Instances")
+    # 5. Final Watershed Instances with High Contrast
+    num_labels = int(pred_instances.max())
+    if num_labels > 0:
+        # Create a shuffled color map for maximum contrast between neighbors
+        rng = np.random.default_rng() # Random seed for each call
+        colors = rng.random((num_labels + 1, 3))
+        colors[0] = [0, 0, 0] # Background is black
+        
+        # Apply the color map
+        colored_instances = colors[pred_instances.astype(int)]
+        axes[4].imshow(colored_instances)
+    else:
+        axes[4].imshow(np.zeros_like(pred_instances), cmap="gray")
+        
+    axes[4].set_title(f"Instances ({num_labels})")
     axes[4].axis("off")
     
     plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path)
-        
-    if wandb.run is not None:
-        # Log the figure to WandB
-        wandb.log({"visual_results": wandb.Image(plt)})
-        
-    plt.close()
+    if save_path: plt.savefig(save_path)
+    if wandb.run is not None: wandb.log({"visual_results": wandb.Image(plt)})
+    plt.close(fig)
 
 def log_metrics_to_wandb(metrics, epoch):
     """Helper to log a dictionary of metrics to WandB."""
