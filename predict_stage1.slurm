@@ -19,7 +19,7 @@ CHECKPOINT="checkpoints/best_model_mAP.pth.tar"
 
 # Point directly to the Stage 1 Test data
 INPUT_DIR="data/data-science-bowl-2018/stage1_test"
-OUTPUT_DIR="outputs/predictions"
+OUTPUT_DIR="outputs/stage1_predictions"
 
 # Create output folder if missing
 mkdir -p $OUTPUT_DIR

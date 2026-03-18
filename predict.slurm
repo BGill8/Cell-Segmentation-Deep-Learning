@@ -17,7 +17,7 @@ source .venv/bin/activate
 # Use the best model (mAP) by default
 CHECKPOINT="checkpoints/best_model_mAP.pth.tar"
 INPUT_DIR="data/data-science-bowl-2018/stage1_train"
-OUTPUT_DIR="outputs/predictions"
+OUTPUT_DIR="outputs/train_predictions"
 
 # Create output folder if missing
 mkdir -p $OUTPUT_DIR
