@@ -134,6 +134,12 @@ def main(args):
         
         except Exception as e:
             print(f"Error processing {img_id}: {e}")
+            
+            # Save an empty mask so Kaggle still gets a blank prediction row
+            if args.save_masks:
+                empty_mask = np.zeros((256, 256), dtype=np.int32)
+                np.save(os.path.join(args.output_dir, f"{img_id}_mask.npy"), empty_mask)
+                
             continue
 
 if __name__ == "__main__":
