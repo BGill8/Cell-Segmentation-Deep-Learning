@@ -71,7 +71,7 @@ if __name__ == '__main__':
     
     # Updated to accept multiple directories
     parser.add_argument("--pred_dirs", nargs='+', 
-                        default=["outputs/predictions", "outputs/stage2_predictions"], 
+                        default=["outputs/stage1_predictions", "outputs/stage2_predictions"], 
                         help="List of directories containing the _mask.npy files")
     
     # >>> CHANGED: Unmistakable new file name <<<
