@@ -46,6 +46,11 @@ def main(args):
             # Number of unique nuclei found in this image
             num_nuclei = labeled_mask.max()
 
+            # >>> FIXED: Kaggle requires an empty row if no nuclei are found! <<<
+            if num_nuclei == 0:
+                submission_data.append([image_id, ''])
+                continue
+
             # Loop through every single nucleus found in the image
             for i in range(1, num_nuclei + 1):
                 instance_mask = (labeled_mask == i).astype(np.uint8)
@@ -58,7 +63,7 @@ def main(args):
     df = pd.DataFrame(submission_data, columns=['ImageId', 'EncodedPixels'])
     df.to_csv(args.output_file, index=False)
 
-    print(f"\nSuccess! Saved {len(df)} total nuclei to {args.output_file}")
+    print(f"\nSuccess! Saved {len(df)} total nuclei/rows to {args.output_file}")
     print("This file is now ready for submission to Kaggle.")
 
 if __name__ == '__main__':
@@ -69,7 +74,8 @@ if __name__ == '__main__':
                         default=["outputs/predictions", "outputs/stage2_predictions"], 
                         help="List of directories containing the _mask.npy files")
     
-    parser.add_argument("--output_file", type=str, default="outputs/submission.csv",
+    # >>> CHANGED: Unmistakable new file name <<<
+    parser.add_argument("--output_file", type=str, default="outputs/FINAL_Kaggle_Submission.csv",
                         help="Path to the final CSV file")
 
     args = parser.parse_args()
