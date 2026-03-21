@@ -1,5 +1,6 @@
 """
 Adapted U-Net architecture for instance segmentation.
+Edits made my Brandon Gill and Andy Bui for AI535 Final Project.
 Maintains the standard Encoder-Decoder structure with skip connections, 
 but the final output layer is modified to predict multiple channels:
 Channel 0: Core nucleus probability map (Semantic)

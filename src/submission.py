@@ -26,7 +26,7 @@ def main(args):
 
     submission_data = []
 
-    # Loop through every directory passed into the script
+    # Loop through every directory passed into the script.
     for current_dir in args.pred_dirs:
         # Get all mask files in the current prediction directory
         if not os.path.exists(current_dir):
