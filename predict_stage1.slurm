@@ -11,7 +11,7 @@
 module load python/3.10
 module load cuda/11.8
 
-# Activate your virtual environment
+# Don't forget to activate your virtual environment
 source .venv/bin/activate
 
 # Use the best model (mAP) by default
